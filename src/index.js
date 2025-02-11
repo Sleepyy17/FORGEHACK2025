@@ -59,7 +59,7 @@ export const createIssue = async(payload) => {
               "content": [
                 {
                   "type": "text",
-                  "text": `**Context:** ${DESCRIPTION} \n\n**Proposed Action:** ${PROPOSEDACTION}`
+                  "text": `Context:\n${DESCRIPTION} \n\nProposed Action: \n${PROPOSEDACTION}`
                 }
               ]
             }
@@ -72,21 +72,10 @@ export const createIssue = async(payload) => {
           "id": USERID,
         },
         "priority": {
-          "name": PRIORITY
+          "name": PRIORITY,
         },
       }
     }
-
-    // const issueData = {
-    //   fields: {
-    //     project: { key: PROJECT_KEY },
-    //     summary: message.title,
-    //     description: `**Context:** ${message.description} \n\n**Proposed Action:** ${message.proposedAction}`,
-    //     issuetype: { "id": "10002" }, // idk need to add different types?
-    //     // priority: { name: message.priority || "Medium" }, // default is medium
-    //     // assignee: message.assignee ? { name: message.assignee } : undefined,
-    //   },
-    // };
     
 
     const response = await api.asApp().requestJira(route`/rest/api/3/issue`, {
@@ -110,6 +99,53 @@ export const createIssue = async(payload) => {
 
   } catch (error) {
     console.error(`Unexpected error: ${error.message}`);
-    return { statusCode: 500, body: "Internal server error" };
+    return { statusCode: 500, body: "Yeah its Over." };
+  }
+}
+
+
+export const findSimilarIssues = async (payload) => {
+  try {
+    const task = payload.task || null
+    const projectKey = payload.projectKey || payload.context?.jira?.projectKey || null
+    if (!task) {
+      throw new Error('Task name is required')
+    }
+
+    if (!projectKey) {
+      throw new Error('project key is required')
+    }
+    
+    const response = await api.asUser().requestJira(route`/rest/api/3/search?jql=project="${projectKey}"`)
+    const data = await response.json()
+    console.log(data);
+    return data.issues.map(issue => ({
+      summary: issue.fields.summary
+    }))
+  }
+  catch (error) {
+    console.error(`Unexpected error: ${error.message}`);
+    return { statusCode: 500, body: "No Issues Ignore the message" };
+  }
+}
+
+// if the status is done then do not worry about it
+export const deleteIssues = async(payload) => {
+  const desc = payload.desc || null
+  if (!desc) {
+    throw new Error('Task summary is required')
+  }
+
+  const response = await api.asUser().requestJira(route`/rest/api/3/search?jql=summary~"${desc}"`, {
+    headers: {
+      'Accept': 'application/json'
+    }
+  });
+  const data = await response.json();
+  for (let i in data.issues) {
+    const issueKey = data.issues[i].key
+    const deleteResponse = await api.asUser().requestJira(route`/rest/api/3/issue/${issueKey}`, {
+      method: 'DELETE'
+    });
   }
 }

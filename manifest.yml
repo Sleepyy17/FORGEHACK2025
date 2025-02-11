@@ -10,10 +10,12 @@ modules:
         You can perform the following jobs based on the user's request.
 
           A. Generating a structured Jira issue draft
+
         
         NOTE: Do not call the create-issue action until the user has confirmed the Jira issue draft. 
 
         I'll separate the instructions for each job which a '---' on a new line, followed by the job title.
+
 
         ---
 
@@ -26,32 +28,40 @@ modules:
 
           2. Filter out irrelavant chatter, this may include greetings, jokes, unrelated messages, timestamps, emojis.
 
-          3. Note how many issues are being discussed and if there are any assignees mentioned. If there are multiple issues, 
+          3. Before replying but after cleaning the details about the issues, fetch all the current issues using the get-issues action. 
+          If there are any issues similar to the one the user provided remember it as you will have to indicate it in the next step. 
+          An issue would be similar if the summary's of both issues have the same problem. Indicate it using 🟨.
+
+          4. If there is a similar issue, ask the user if they would like to delete the existing issue. If they say yes, use the delete-issues action. 
+          If there are no duplicates ignore this step.
+
+          5. Note how many issues are being discussed and if there are any assignees mentioned. If there are multiple issues, 
           let the user know in a numbered table and ask them to specify which issue they would like to create. If there is a single issue you 
           can skip this step.
-          Use ✅ to indicate resolved issues and ❌ to indicate unresolved issues.
+          Use ✅ to indicate resolved issues and ❌ to indicate unresolved issues and 🟨 to indicate duplicate/similar issues.
 
-          4. Generate a well structured Jira issue using the on the conversation data provided by the user. 
+
+          6. Generate a well structured Jira issue using the on the conversation data provided by the user. 
 
             Follow these rules: 
             - Do not mention names in the Title and Description other than the Assignee.
             - Be clear and factual
-            - If the expexted outcome is clear, mention it in the Description.
+            - Try produce an expected outcome, mention it in the Description.
             - Make sure you use BOLD and ITALICS to highlight important details.
             - Display the Jira Issue in a structured tabular format.
             - There can at most be one assignee for the issue. If unsure ask the user to provide the assignee.
 
-          5. It is important to ask for confirmation when in doubt. If important details are missing or 
+          7. It is important to ask for confirmation when in doubt. If important details are missing or 
           unclear, ask the user to refine the issue. Loop back to step 3 if the user provides more information/adjustments.
           Only move to step 5 when everything is approved, and the user agrees with the preview Jira issue.
           
-          6. Finally when everything is approved use the create-issue action with the issue created to create the Jira issue.
+          8. Finally when everything is approved use the create-issue action with the issue created to create the Jira issue.
           In the message, provide a link to the Jira issue, and the tabular issue list. Make sure to ✅ the issues that have been resolved. 
 
-          7. If there are more issues that have not been resolved, go back to step 3 and repeat the process. 
-        
+          9. If there are more issues that have not been resolved, go back to step 3 and repeat the process. 
 
-        If an error occurs, provide a helpful error message and ask the user to try again.
+
+        If an error occurs at any point, provide a helpful error message and ask the user to try again.
         Good Job!
         
       conversationStarters:
@@ -60,58 +70,97 @@ modules:
         - Tell me a joke
       actions:
         - create-issue
+        - get-issues
+        - delete-issues
   action:
-    - key: create-issue
-      name: Create an Issue
-      function: createIssue
-      actionVerb: GET  #CREATE DOES NOT WORK :(
-      description: >
-        Create a Jira issue based on the conversation data provided by the user.
-      inputs:
-        title:
-          title: "Issue Title"
-          type: string
-          required: false
-          description: "Title of the Jira issue (brief summary)."
+  - key: create-issue
+    name: Create an Issue
+    function: createIssue
+    actionVerb: GET  #CREATE DOES NOT WORK :(
+    description: >
+      Create a Jira issue based on the conversation data provided by the user.
+    inputs:
+      title:
+        title: "Issue Title"
+        type: string
+        required: false
+        description: "Title of the Jira issue (brief summary)."
         
-        description:
-          title: "Issue Description"
-          type: string
-          required: false
-          description: "Detailed issue description, including context and key discussion points."
+      description:
+        title: "Issue Description"
+        type: string
+        required: false
+        description: "Detailed issue description, including context and key discussion points."
         
-        proposedAction:
-          title: "Proposed Action"
-          type: string
-          required: false
-          description: "What needs to be done next."
+      proposedAction:
+        title: "Proposed Action"
+        type: string
+        required: false
+        description: "What needs to be done next."
 
-        priority:
-          title: "Priority"
-          type: string
-          required: false
-          description: "Priority level (e.g., High, Medium, Low)."
+      priority:
+        title: "Priority"
+        type: string
+        required: false
+        description: "Priority level (e.g., High, Medium, Low)."
 
-        assignee:
-          title: "Assignee"
-          type: string
-          required: false
-          description: "User assigned to the Jira issue."
+      assignee:
+        title: "Assignee"
+        type: string
+        required: false
+        description: "User assigned to the Jira issue."
 
-        relatedIssues:
-          title: "Related Issues"
-          type: string
-          required: false
-          description: "Any related Jira issues that should be linked."
+      relatedIssues:
+        title: "Related Issues"
+        type: string
+        required: false
+        description: "Any related Jira issues that should be linked."
 
-        projectKey:
-          title: "Project Key"
-          type: string
-          required: true
-          description: "Key of the Jira project where the issue will be created."
+      projectKey:
+        title: "Project Key"
+        type: string
+        required: true
+        description: "Key of the Jira project where the issue will be created."
+        
+  - key: get-issues
+    name: Get Issues
+    function: getIssues
+    actionVerb: GET
+    description: >
+      When a user asks to make an issue, this action checks if any similar issues relating to the details the user provided
+      already exist in Jira.
+    inputs:
+      task:
+        title: Task
+        type: string
+        required: true
+        description: "The details of the issue."
+      projectKey:
+        title: Project Key
+        type: string
+        required: true
+        description: "The project key to fetch the issues from"
+
+  - key: delete-issues
+    name: Delete Issues
+    function: deleteIssues
+    actionVerb: GET
+    description: >
+      When any similar issues to the one described by the user exist, prompt the user
+      asking them if they'd like to delete the currently existing similar issue.
+    inputs:
+      desc:
+        title: Description
+        type: string
+        required: true
+        description: "The description of the issue to be deleted"
   function:
     - key: createIssue
       handler: index.createIssue
+    - key: getIssues
+      handler: index.findSimilarIssues
+    - key: deleteIssues
+      handler: index.deleteIssues
 app:
   runtime:
     name: nodejs22.x
