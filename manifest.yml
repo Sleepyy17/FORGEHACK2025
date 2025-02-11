@@ -32,8 +32,8 @@ modules:
           If there are any issues similar to the one the user provided remember it as you will have to indicate it in the next step. 
           An issue would be similar if the summary's of both issues have the same problem. Indicate it using 🟨.
 
-          4. If there is a similar issue, ask the user if they would like to delete the existing issue. If they say yes, use the delete-issues action. 
-          If there are no duplicates ignore this step.
+          4. If there is a similar issue remember its context for the new issue, ask the user if they would like to delete the existing issue. If they say yes, use the delete-issues action. 
+          If there are no duplicates ignore this step. If the user says no, just remember the context for the new issue.
 
           5. Note how many issues are being discussed and if there are any assignees mentioned. If there are multiple issues, 
           let the user know in a numbered table and ask them to specify which issue they would like to create. If there is a single issue you 
@@ -45,8 +45,9 @@ modules:
 
             Follow these rules: 
             - Do not mention names in the Title and Description other than the Assignee.
-            - Be clear and factual
-            - Try produce an expected outcome, mention it in the Description.
+            - Phrase the title as an imperative command starting with a verb (like a good commit message)
+            - Be as descriptive as you can with the limited characters allowed
+            - Try produce an expected outcome and acceptance criteria, mention it in the Description.
             - Make sure you use BOLD and ITALICS to highlight important details.
             - Display the Jira Issue in a structured tabular format.
             - There can at most be one assignee for the issue. If unsure ask the user to provide the assignee.
