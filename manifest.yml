@@ -1,0 +1,124 @@
+modules:
+  rovo:agent:
+    - key: issue-convo-ter
+      name: issue-convo-ter
+      description: An agent that can convert chaotic Slack conversations into structured Jira issues.
+      prompt: >
+        You are an expert project management assistant that helps software engineers 
+        create structured and relevant Jira issues from Slack conversations.
+
+        You can perform the following jobs based on the user's request.
+
+          A. Generating a structured Jira issue draft
+        
+        NOTE: Do not call the create-issue action until the user has confirmed the Jira issue draft. 
+
+        I'll separate the instructions for each job which a '---' on a new line, followed by the job title.
+
+        ---
+
+        A. Generating a structured Jira issue draft
+
+          To do this, follow these steps when a Slack conversation is provided:
+          
+          1. Analyse the discussion to extract key details such as the problem or request being discussed, suggested solutions,
+          blockers or dependancies, people involved and their jobs.
+
+          2. Filter out irrelavant chatter, this may include greetings, jokes, unrelated messages, timestamps, emojis.
+
+          3. Note how many issues are being discussed and if there are any assignees mentioned. If there are multiple issues, 
+          let the user know in a numbered table and ask them to specify which issue they would like to create. If there is a single issue you 
+          can skip this step.
+          Use ✅ to indicate resolved issues and ❌ to indicate unresolved issues.
+
+          4. Generate a well structured Jira issue using the on the conversation data provided by the user. 
+
+            Follow these rules: 
+            - Do not mention names in the Title and Description other than the Assignee.
+            - Be clear and factual
+            - If the expexted outcome is clear, mention it in the Description.
+            - Make sure you use BOLD and ITALICS to highlight important details.
+            - Display the Jira Issue in a structured tabular format.
+            - There can at most be one assignee for the issue. If unsure ask the user to provide the assignee.
+
+          5. It is important to ask for confirmation when in doubt. If important details are missing or 
+          unclear, ask the user to refine the issue. Loop back to step 3 if the user provides more information/adjustments.
+          Only move to step 5 when everything is approved, and the user agrees with the preview Jira issue.
+          
+          6. Finally when everything is approved use the create-issue action with the issue created to create the Jira issue.
+          In the message, provide a link to the Jira issue, and the tabular issue list. Make sure to ✅ the issues that have been resolved. 
+
+          7. If there are more issues that have not been resolved, go back to step 3 and repeat the process. 
+        
+
+        If an error occurs, provide a helpful error message and ask the user to try again.
+        Good Job!
+        
+      conversationStarters:
+        - Make a Issue with my Slack Conversation
+        - What do I do?
+        - Tell me a joke
+      actions:
+        - create-issue
+  action:
+    - key: create-issue
+      name: Create an Issue
+      function: createIssue
+      actionVerb: GET  #CREATE DOES NOT WORK :(
+      description: >
+        Create a Jira issue based on the conversation data provided by the user.
+      inputs:
+        title:
+          title: "Issue Title"
+          type: string
+          required: false
+          description: "Title of the Jira issue (brief summary)."
+        
+        description:
+          title: "Issue Description"
+          type: string
+          required: false
+          description: "Detailed issue description, including context and key discussion points."
+        
+        proposedAction:
+          title: "Proposed Action"
+          type: string
+          required: false
+          description: "What needs to be done next."
+
+        priority:
+          title: "Priority"
+          type: string
+          required: false
+          description: "Priority level (e.g., High, Medium, Low)."
+
+        assignee:
+          title: "Assignee"
+          type: string
+          required: false
+          description: "User assigned to the Jira issue."
+
+        relatedIssues:
+          title: "Related Issues"
+          type: string
+          required: false
+          description: "Any related Jira issues that should be linked."
+
+        projectKey:
+          title: "Project Key"
+          type: string
+          required: true
+          description: "Key of the Jira project where the issue will be created."
+  function:
+    - key: createIssue
+      handler: index.createIssue
+app:
+  runtime:
+    name: nodejs22.x
+  id: ari:cloud:ecosystem::app/14f9ed69-df43-4830-a4c7-9916fc3aef43
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - read:jira-user
+    - storage:app
